@@ -21,6 +21,11 @@ async function main() {
   const subscriptionServiceAbi = getAbi(SUB_CONTRACT_NAME);
   const bpayAbi = getAbi(BPAY_CONTRACT_NAME);
 
+  await subscriptionService
+    .connect(owner)
+    .addPlan("plan1", ethers.parseEther("100"), 30)
+    .then((tx) => tx.wait());
+
   const frontRootPath = path.join(__dirname, "../../bpay-front");
   const frontSrcPath = path.join(frontRootPath, "/src");
   const frontAbiFolderPath = path.join(frontSrcPath, "/abi");
