@@ -35,11 +35,16 @@ contract SubscriptionService is Ownable {
     event Subscribed(address indexed customer, uint256 indexed planId);
     event Unsubscribed(address indexed customer, uint256 indexed planId);
 
-    event PaymentFailed(address indexed customer, uint256 indexed planId);
+    event PaymentFailed(
+        uint256 indexed planId,
+        address indexed customer,
+        address indexed merchant,
+        uint256 amount
+    );
     event PaymentTransferred(
         uint256 indexed planId,
-        address indexed customerAddress,
-        address indexed merchantAddress,
+        address indexed customer,
+        address indexed merchant,
         uint256 amount
     );
 
@@ -132,7 +137,12 @@ contract SubscriptionService is Ownable {
                             plan.price
                         );
                     } catch {
-                        emit PaymentFailed(sub.customerAddress, plan.id);
+                        emit PaymentFailed(
+                            plan.id,
+                            sub.customerAddress,
+                            merchant,
+                            plan.price
+                        );
                     }
                 }
             }

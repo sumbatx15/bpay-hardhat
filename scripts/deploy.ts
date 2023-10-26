@@ -40,11 +40,17 @@ async function main() {
   const tokenAddress = await bpayToken.getAddress();
 
   await Promise.all(
-    users.map((user) => {
-      return bpayToken
+    users.map(async (user) => {
+      await bpayToken
         .connect(owner)
         .mint(user.address)
         .then((tx) => tx.wait());
+      await bpayToken
+        .connect(owner)
+        .approve(subAddress, ethers.parseEther("1000"))
+        .then((tx) => tx.wait());
+
+      return;
     })
   );
 
