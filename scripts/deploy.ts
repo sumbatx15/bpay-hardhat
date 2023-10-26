@@ -25,17 +25,11 @@ async function main() {
   const frontSrcPath = path.join(frontRootPath, "/src");
   const frontAbiFolderPath = path.join(frontSrcPath, "/abi");
 
-  fs.writeFileSync(
-    path.join(frontAbiFolderPath, `${SUB_CONTRACT_NAME}.ts`),
-    `export const ${SUB_CONTRACT_NAME}Abi = ${JSON.stringify(
-      subscriptionServiceAbi
-    )} as const`
-  );
+  writeTSAbi(frontAbiFolderPath, SUB_CONTRACT_NAME, subscriptionServiceAbi);
+  writeJSONAbi(frontAbiFolderPath, SUB_CONTRACT_NAME, subscriptionServiceAbi);
 
-  fs.writeFileSync(
-    path.join(frontAbiFolderPath, `${BPAY_CONTRACT_NAME}.ts`),
-    `export const ${BPAY_CONTRACT_NAME}Abi = ${JSON.stringify(bpayAbi)} as const`
-  );
+  writeTSAbi(frontAbiFolderPath, BPAY_CONTRACT_NAME, bpayAbi);
+  writeJSONAbi(frontAbiFolderPath, BPAY_CONTRACT_NAME, bpayAbi);
 
   const subAddress = await subscriptionService.getAddress();
   const tokenAddress = await bpayToken.getAddress();
@@ -72,3 +66,27 @@ main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
+
+function writeJSONAbi(
+  frontAbiFolderPath: string,
+  contractName: string,
+  subscriptionServiceAbi: any
+) {
+  fs.writeFileSync(
+    path.join(frontAbiFolderPath, `${contractName}.json`),
+    JSON.stringify(subscriptionServiceAbi)
+  );
+}
+
+function writeTSAbi(
+  frontAbiFolderPath: string,
+  contractName: string,
+  subscriptionServiceAbi: any
+) {
+  fs.writeFileSync(
+    path.join(frontAbiFolderPath, `${contractName}.ts`),
+    `export const ${contractName}Abi = ${JSON.stringify(
+      subscriptionServiceAbi
+    )} as const`
+  );
+}

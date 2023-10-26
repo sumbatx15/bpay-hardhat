@@ -8,6 +8,7 @@ import "hardhat/console.sol";
 contract SubscriptionService is Ownable {
     struct Plan {
         uint256 id;
+        address merchant;
         string name;
         uint256 price;
         uint256 period;
@@ -44,9 +45,15 @@ contract SubscriptionService is Ownable {
 
     function addPlan(string memory name, uint256 price, uint256 period) public {
         uint256 planIndex = planCounter++;
-        merchantPlansMap[msg.sender].push(Plan(planIndex, name, price, period));
+        Plan memory newPlan = Plan(planIndex, msg.sender, name, price, period);
+        merchantPlansMap[msg.sender].push(newPlan);
+        plans[planIndex] = newPlan;
 
         emit PlanCreated(planIndex, msg.sender);
+    }
+
+    function getPlanById(uint256 planId) public view returns (Plan memory) {
+        return plans[planId];
     }
 
     function removePlan(uint256 planId) public {
