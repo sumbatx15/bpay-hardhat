@@ -96,6 +96,7 @@ contract SubscriptionService is Ownable {
             if (subs[i].customerAddress == msg.sender) {
                 subs[i] = subs[subs.length - 1];
                 subs.pop();
+                emit Unsubscribed(msg.sender, planId);
                 break;
             }
         }
