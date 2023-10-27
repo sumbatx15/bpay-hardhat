@@ -58,6 +58,8 @@ contract SubscriptionService is Ownable {
         uint256 amount
     );
 
+    event Executed(address indexed merchant);
+
     function addPlan(string memory name, uint256 price, uint256 period) public {
         uint256 planIndex = planCounter++;
         Plan memory newPlan = Plan(planIndex, msg.sender, name, price, period);
@@ -166,6 +168,8 @@ contract SubscriptionService is Ownable {
                 }
             }
         }
+
+        emit Executed(merchant);
     }
 
     function getMerchantPlans(

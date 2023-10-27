@@ -23,15 +23,15 @@ async function main() {
 
   await subscriptionService
     .connect(owner)
-    .addPlan("plan1", ethers.parseEther("19.99"), 30)
+    .addPlan("CSGO Premium", ethers.parseEther("19.99"), 1)
     .then((tx) => tx.wait());
   await subscriptionService
     .connect(owner)
-    .addPlan("plan1", ethers.parseEther("35.99"), 30)
+    .addPlan("FACEIT Platinum", ethers.parseEther("35.99"), 1)
     .then((tx) => tx.wait());
   await subscriptionService
     .connect(owner)
-    .addPlan("plan1", ethers.parseEther("69.99"), 30)
+    .addPlan("XBOX Subsctiption", ethers.parseEther("69.99"), 1)
     .then((tx) => tx.wait());
 
   const frontRootPath = path.join(__dirname, "../../bpay-front");
@@ -77,6 +77,10 @@ async function main() {
       await subscriptionService
         .connect(user)
         .subscribe(1)
+        .then((tx) => tx.wait());
+      await subscriptionService
+        .connect(user)
+        .subscribe(2)
         .then((tx) => tx.wait());
 
       return;
