@@ -21,9 +21,14 @@ async function main() {
   const subscriptionServiceAbi = getAbi(SUB_CONTRACT_NAME);
   const bpayAbi = getAbi(BPAY_CONTRACT_NAME);
 
+
   await subscriptionService
     .connect(owner)
     .addPlan("plan1", ethers.parseEther("19.99"), 30)
+    .then((tx) => tx.wait());
+  await subscriptionService
+    .connect(owner)
+    .addPlan("plan1", ethers.parseEther("1500"), 30)
     .then((tx) => tx.wait());
 
   const frontRootPath = path.join(__dirname, "../../bpay-front");
@@ -42,12 +47,28 @@ async function main() {
   await Promise.all(
     [owner, ...users].map(async (user) => {
       await bpayToken
-        .connect(owner)
+        .connect(user)
         .mint(user.address)
         .then((tx) => tx.wait());
       await bpayToken
-        .connect(owner)
+        .connect(user)
         .approve(subAddress, ethers.parseEther("1000"))
+        .then((tx) => tx.wait());
+
+      return;
+    })
+  );
+
+  // subscribe with all the user to all the plans
+  await Promise.all(
+    [owner, ...users].map(async (user) => {
+      await subscriptionService
+        .connect(user)
+        .subscribe(0)
+        .then((tx) => tx.wait());
+      await subscriptionService
+        .connect(user)
+        .subscribe(1)
         .then((tx) => tx.wait());
 
       return;
