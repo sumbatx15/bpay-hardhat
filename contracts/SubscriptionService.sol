@@ -39,8 +39,18 @@ contract SubscriptionService is Ownable {
         uint256 indexed planId,
         address indexed customer,
         address indexed merchant,
-        uint256 amount
+        uint256 amount,
+        bytes reason
     );
+
+    event PaymentFailedWithReason(
+        uint256 indexed planId,
+        address indexed customer,
+        address indexed merchant,
+        uint256 amount,
+        string reason
+    );
+
     event PaymentTransferred(
         uint256 indexed planId,
         address indexed customer,
@@ -137,11 +147,20 @@ contract SubscriptionService is Ownable {
                             plan.price
                         );
                     } catch Error(string memory reason) {
+                        emit PaymentFailedWithReason(
+                            plan.id,
+                            sub.customerAddress,
+                            merchant,
+                            plan.price,
+                            reason
+                        );
+                    } catch (bytes memory reason) {
                         emit PaymentFailed(
                             plan.id,
                             sub.customerAddress,
                             merchant,
-                            plan.price
+                            plan.price,
+                            reason
                         );
                     }
                 }

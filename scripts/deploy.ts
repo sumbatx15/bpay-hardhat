@@ -21,14 +21,17 @@ async function main() {
   const subscriptionServiceAbi = getAbi(SUB_CONTRACT_NAME);
   const bpayAbi = getAbi(BPAY_CONTRACT_NAME);
 
-
   await subscriptionService
     .connect(owner)
     .addPlan("plan1", ethers.parseEther("19.99"), 30)
     .then((tx) => tx.wait());
   await subscriptionService
     .connect(owner)
-    .addPlan("plan1", ethers.parseEther("1500"), 30)
+    .addPlan("plan1", ethers.parseEther("35.99"), 30)
+    .then((tx) => tx.wait());
+  await subscriptionService
+    .connect(owner)
+    .addPlan("plan1", ethers.parseEther("69.99"), 30)
     .then((tx) => tx.wait());
 
   const frontRootPath = path.join(__dirname, "../../bpay-front");
@@ -52,7 +55,12 @@ async function main() {
         .then((tx) => tx.wait());
       await bpayToken
         .connect(user)
-        .approve(subAddress, ethers.parseEther("1000"))
+        .approve(
+          subAddress,
+          Math.random() > 0.5
+            ? ethers.parseEther("1000000")
+            : ethers.parseEther("1000000")
+        )
         .then((tx) => tx.wait());
 
       return;
