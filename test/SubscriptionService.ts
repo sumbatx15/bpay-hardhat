@@ -99,14 +99,16 @@ describe("SubscriptionService", function () {
   it("Runner should transfer tokens from users to plan owner", async function () {
     const [owner, ...users] = await ethers.getSigners();
 
-    const tx = await subContract.execute(
-      owner.address,
-      tokenContract.getAddress(),
-      {
+    const tx = await subContract
+      .connect(users[0])
+      .execute(owner.address, tokenContract.getAddress(), {
         gasPrice: 30000000000n,
-      }
-    );
+      });
     const result = await tx.wait();
+
+    expect(await tokenContract.balanceOf(owner.address)).to.lessThan(
+      ethers.parseEther("1000")
+    );
 
     if (result?.gasUsed && result?.gasPrice) {
       console.log(

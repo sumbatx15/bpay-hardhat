@@ -23,7 +23,7 @@ async function main() {
 
   await subscriptionService
     .connect(owner)
-    .addPlan("plan1", ethers.parseEther("100"), 30)
+    .addPlan("plan1", ethers.parseEther("19.99"), 30)
     .then((tx) => tx.wait());
 
   const frontRootPath = path.join(__dirname, "../../bpay-front");
@@ -40,7 +40,7 @@ async function main() {
   const tokenAddress = await bpayToken.getAddress();
 
   await Promise.all(
-    users.map(async (user) => {
+    [owner, ...users].map(async (user) => {
       await bpayToken
         .connect(owner)
         .mint(user.address)

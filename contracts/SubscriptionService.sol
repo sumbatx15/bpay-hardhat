@@ -107,7 +107,7 @@ contract SubscriptionService is Ownable {
         }
     }
 
-    function execute(address merchant, IERC20 token) external {
+    function execute(address merchant, IERC20 token) public {
         Plan[] storage merchantPlans = merchantPlansMap[merchant];
         console.log("merchantPlans:", merchantPlans.length);
 
