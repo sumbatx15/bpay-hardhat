@@ -18,6 +18,11 @@ async function main() {
     .deployContract(BPAY_CONTRACT_NAME, [])
     .then((contract) => contract.waitForDeployment());
 
+  subscriptionService
+    .connect(owner)
+    .depositServiceFee({ value: ethers.parseEther("1") })
+    .then((tx) => tx.wait());
+
   const subscriptionServiceAbi = getAbi(SUB_CONTRACT_NAME);
   const bpayAbi = getAbi(BPAY_CONTRACT_NAME);
 

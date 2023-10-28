@@ -17,17 +17,21 @@ contract SubscriptionService is Ownable {
     constructor(address _initialOwner) Ownable(_initialOwner) {}
 
     struct Subscription {
+        uint256 id;
         address customerAddress; // Added customerAddress field
         uint256 createdAt;
         uint256 updatedAt;
     }
 
     uint256 private planCounter;
+    uint256 private subscriptionCounter;
 
     mapping(uint256 => Plan) public plans;
     mapping(address => Plan[]) public merchantPlansMap;
     mapping(address => uint256) public merchantsServiceFeeBalance;
-    mapping(uint256 => Subscription[]) public subscriptions;
+
+    mapping(uint256 => Subscription) public subscriptionsMap;
+    mapping(uint256 => Subscription[]) public planSubscriptionsMap;
 
     event PlanCreated(uint256 indexed planId, address indexed merchant);
     event PlanRemoved(uint256 indexed planId, address indexed merchant);
@@ -59,6 +63,12 @@ contract SubscriptionService is Ownable {
     );
 
     event Executed(address indexed merchant);
+
+    event ServiceFeeTransferred(
+        address indexed merchant,
+        address indexed reciver,
+        uint256 amount
+    );
 
     function addPlan(string memory name, uint256 price, uint256 period) public {
         uint256 planIndex = planCounter++;
@@ -93,21 +103,26 @@ contract SubscriptionService is Ownable {
     function getSubscriptions(
         uint256 planId
     ) public view returns (Subscription[] memory) {
-        return subscriptions[planId];
+        return planSubscriptionsMap[planId];
     }
 
     function subscribe(uint256 planId) public {
+        uint256 subId = subscriptionCounter++;
         Subscription memory newSubscription = Subscription(
+            subId,
             msg.sender,
             block.timestamp,
             0
         );
-        subscriptions[planId].push(newSubscription);
+
+        planSubscriptionsMap[planId].push(newSubscription);
+        subscriptionsMap[subId] = newSubscription;
+
         emit Subscribed(msg.sender, planId);
     }
 
     function unsubscribe(uint256 planId) public {
-        Subscription[] storage subs = subscriptions[planId];
+        Subscription[] storage subs = planSubscriptionsMap[planId];
 
         for (uint256 i = 0; i < subs.length; i++) {
             if (subs[i].customerAddress == msg.sender) {
@@ -120,14 +135,13 @@ contract SubscriptionService is Ownable {
     }
 
     function execute(address merchant, IERC20 token) public {
+        uint256 startGas = gasleft();
         Plan[] storage merchantPlans = merchantPlansMap[merchant];
-        console.log("merchantPlans:", merchantPlans.length);
 
         for (uint256 i = 0; i < merchantPlans.length; i++) {
             Plan storage plan = merchantPlans[i];
 
-            Subscription[] storage subs = subscriptions[plan.id];
-            console.log("subs:", subs.length);
+            Subscription[] storage subs = planSubscriptionsMap[plan.id];
 
             for (uint256 j = 0; j < subs.length; j++) {
                 Subscription storage sub = subs[j];
@@ -169,6 +183,19 @@ contract SubscriptionService is Ownable {
             }
         }
 
+        uint256 endGas = gasleft();
+        uint256 gasUsed = startGas - endGas;
+        uint256 fee = (gasUsed * tx.gasprice) + 21000;
+
+        require(
+            fee <= merchantsServiceFeeBalance[merchant],
+            "Insufficient funds"
+        );
+
+        payable(msg.sender).transfer(fee);
+        merchantsServiceFeeBalance[merchant] -= fee;
+
+        emit ServiceFeeTransferred(merchant, msg.sender, fee);
         emit Executed(merchant);
     }
 
@@ -176,6 +203,12 @@ contract SubscriptionService is Ownable {
         address merchant
     ) public view returns (Plan[] memory) {
         return merchantPlansMap[merchant];
+    }
+
+    function getServiceFeeBalance(
+        address merchant
+    ) public view returns (uint256) {
+        return merchantsServiceFeeBalance[merchant];
     }
 
     function depositServiceFee() public payable {
