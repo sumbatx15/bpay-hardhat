@@ -25,6 +25,7 @@ contract SubscriptionService is Ownable {
 
     uint256 private planCounter;
     uint256 private subscriptionCounter;
+    uint256 private additionalServiceFee = 23000;
 
     mapping(uint256 => Plan) public plans;
     mapping(address => Plan[]) public merchantPlansMap;
@@ -62,7 +63,7 @@ contract SubscriptionService is Ownable {
         uint256 amount
     );
 
-    event Executed(address indexed merchant);
+    event Executed(address indexed merchant, uint256 serviceFee);
 
     event ServiceFeeTransferred(
         address indexed merchant,
@@ -185,7 +186,7 @@ contract SubscriptionService is Ownable {
 
         uint256 endGas = gasleft();
         uint256 gasUsed = startGas - endGas;
-        uint256 fee = (gasUsed * tx.gasprice) + 21000;
+        uint256 fee = (((gasUsed + 21000 + 23000) * 101) / 100) * tx.gasprice;
 
         require(
             fee <= merchantsServiceFeeBalance[merchant],
@@ -194,9 +195,9 @@ contract SubscriptionService is Ownable {
 
         payable(msg.sender).transfer(fee);
         merchantsServiceFeeBalance[merchant] -= fee;
+        console.log('fee sc:', fee);
 
         emit ServiceFeeTransferred(merchant, msg.sender, fee);
-        emit Executed(merchant);
     }
 
     function getMerchantPlans(

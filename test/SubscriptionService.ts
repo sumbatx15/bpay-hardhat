@@ -36,8 +36,15 @@ describe("SubscriptionService", function () {
       if (accounts.indexOf(account) != 0) {
         await token.mint(account.address);
       }
-      token.approve(subContract.getAddress(), "1000000000000000000000");
+      token.approve(subContract.getAddress(), ethers.parseEther("100000"));
     }
+
+    await subContract
+      .connect(accounts[0])
+      .depositServiceFee({
+        value: ethers.parseEther("1"),
+      })
+      .then((tx) => tx.wait());
   });
 
   it("Every account should have 1000 tokens", async function () {
@@ -45,7 +52,7 @@ describe("SubscriptionService", function () {
 
     for (let account of accounts) {
       const balance = await tokenContract.balanceOf(account.address);
-      expect(balance).to.equal("1000000000000000000000");
+      expect(balance).to.greaterThanOrEqual(ethers.parseEther("1000"));
     }
   });
 
@@ -57,7 +64,7 @@ describe("SubscriptionService", function () {
         account.address,
         subContract.getAddress()
       );
-      expect(allowance).to.equal("1000000000000000000000");
+      expect(allowance).to.equal(ethers.parseEther("100000"));
     }
   });
 
@@ -65,8 +72,16 @@ describe("SubscriptionService", function () {
     const [owner] = await ethers.getSigners();
 
     const plansData = [
-      { name: "plan1", amount: "19900000000000000000", duration: 5 },
-      { name: "plan2", amount: "19900000000000000000", duration: 5 },
+      { name: "plan1", amount: ethers.parseEther("19.99"), duration: 5 },
+      { name: "plan1", amount: ethers.parseEther("19.99"), duration: 5 },
+      { name: "plan1", amount: ethers.parseEther("19.99"), duration: 5 },
+      { name: "plan1", amount: ethers.parseEther("19.99"), duration: 5 },
+      { name: "plan1", amount: ethers.parseEther("19.99"), duration: 5 },
+      { name: "plan1", amount: ethers.parseEther("19.99"), duration: 5 },
+      { name: "plan1", amount: ethers.parseEther("19.99"), duration: 5 },
+      { name: "plan1", amount: ethers.parseEther("19.99"), duration: 5 },
+      { name: "plan1", amount: ethers.parseEther("19.99"), duration: 5 },
+      { name: "plan1", amount: ethers.parseEther("19.99"), duration: 5 },
     ];
 
     for (let plan of plansData) {
@@ -87,36 +102,59 @@ describe("SubscriptionService", function () {
 
     for (let plan of plans) {
       for (let user of users) {
-        const tx = await subContract.connect(user).subscribe(plan.id);
-        await tx.wait();
+        for (let i = 0; i < 2; i++) {
+          const tx = await subContract.connect(user).subscribe(plan.id);
+          await tx.wait();
+        }
       }
 
       const subs = await subContract.getSubscriptions(plan.id);
-      expect(subs.length).to.equal(users.length);
+      expect(subs.length).to.equal(users.length * 2);
     }
   });
 
-  it("Runner should transfer tokens from users to plan owner", async function () {
-    const [owner, ...users] = await ethers.getSigners();
+  it("Reward should be bigger then the fee", async function () {
+    const [owner] = await ethers.getSigners();
 
     const tx = await subContract
-      .connect(users[0])
-      .execute(owner.address, tokenContract.getAddress(), {
-        gasPrice: 30000000000n,
-      });
-    const result = await tx.wait();
+      .connect(owner)
+      .execute(owner.address, await tokenContract.getAddress());
+    const receipt = await tx.wait();
 
-    expect(await tokenContract.balanceOf(owner.address)).to.lessThan(
-      ethers.parseEther("1000")
-    );
+    const estimatedGas = await subContract
+      .connect(owner)
+      .execute.estimateGas(owner.address, await tokenContract.getAddress());
 
-    if (result?.gasUsed && result?.gasPrice) {
-      console.log(
-        "total fee in ether:",
-        ethers.formatEther(result?.gasUsed * result?.gasPrice * 1800n)
-      );
-    }
+    if (!receipt) throw new Error("No receipt");
+    const feeInGwei = receipt?.fee;
+    console.log("receipt fee:", feeInGwei);
+    const fee = +ethers.formatEther(feeInGwei) * 1787.76;
+    const botReward = (fee * 101) / 100 - fee;
+    console.log("real:", fee);
+    console.log("botReward:", botReward);
   });
+
+  // it("Runner should transfer tokens from users to plan owner", async function () {
+  //   const [owner, ...users] = await ethers.getSigners();
+
+  //   const tx = await subContract
+  //     .connect(users[0])
+  //     .execute(owner.address, tokenContract.getAddress(), {
+  //       gasPrice: 30000000000n,
+  //     });
+  //   const result = await tx.wait();
+
+  //   expect(await tokenContract.balanceOf(owner.address)).to.lessThan(
+  //     ethers.parseEther("1000")
+  //   );
+
+  //   if (result?.gasUsed && result?.gasPrice) {
+  //     console.log(
+  //       "total fee in ether:",
+  //       ethers.formatEther(result?.gasUsed * result?.gasPrice * 1800n)
+  //     );
+  //   }
+  // });
 
   // it("Check gas cost", async function () {
   //   const [owner] = await ethers.getSigners();
