@@ -8,7 +8,7 @@
     "node": "hardhat node",
     "predeploy": "yarn build",
     "deploy": "hardhat run scripts/deploy.ts --network localhost",
-    "start": "concurrently \"hardhat node\" \"sleep 5 & yarn deploy\""
+    "dev": "concurrently \"hardhat node\" \"sleep 5 & yarn deploy\""
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
