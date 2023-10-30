@@ -20,7 +20,7 @@ async function main() {
 
   subscriptionService
     .connect(owner)
-    .depositServiceFee({ value: ethers.parseEther("1") })
+    .depositServiceFee({ value: ethers.parseEther("10") })
     .then((tx) => tx.wait());
 
   const subscriptionServiceAbi = getAbi(SUB_CONTRACT_NAME);
@@ -28,16 +28,16 @@ async function main() {
 
   await subscriptionService
     .connect(owner)
-    .addPlan("CSGO Premium", ethers.parseEther("19.99"), 1)
+    .addPlan("CSGO Premium", ethers.parseEther("9.99"), 1)
     .then((tx) => tx.wait());
-  await subscriptionService
-    .connect(owner)
-    .addPlan("FACEIT Platinum", ethers.parseEther("35.99"), 1)
-    .then((tx) => tx.wait());
-  await subscriptionService
-    .connect(owner)
-    .addPlan("XBOX Subsctiption", ethers.parseEther("69.99"), 1)
-    .then((tx) => tx.wait());
+  // await subscriptionService
+  //   .connect(owner)
+  //   .addPlan("FACEIT Platinum", ethers.parseEther("35.99"), 1)
+  //   .then((tx) => tx.wait());
+  // await subscriptionService
+  //   .connect(owner)
+  //   .addPlan("XBOX Subsctiption", ethers.parseEther("69.99"), 1)
+  //   .then((tx) => tx.wait());
 
   const frontRootPath = path.join(__dirname, "../../bpay-front");
   const frontSrcPath = path.join(frontRootPath, "/src");
@@ -75,18 +75,20 @@ async function main() {
   // subscribe with all the user to all the plans
   await Promise.all(
     [owner, ...users].map(async (user) => {
-      await subscriptionService
-        .connect(user)
-        .subscribe(0)
-        .then((tx) => tx.wait());
-      await subscriptionService
-        .connect(user)
-        .subscribe(1)
-        .then((tx) => tx.wait());
-      await subscriptionService
-        .connect(user)
-        .subscribe(2)
-        .then((tx) => tx.wait());
+      for (let i = 0; i < 5; i++) {
+        await subscriptionService
+          .connect(user)
+          .subscribe(0)
+          .then((tx) => tx.wait());
+      }
+      // await subscriptionService
+      //   .connect(user)
+      //   .subscribe(1)
+      //   .then((tx) => tx.wait());
+      // await subscriptionService
+      //   .connect(user)
+      //   .subscribe(2)
+      //   .then((tx) => tx.wait());
 
       return;
     })
