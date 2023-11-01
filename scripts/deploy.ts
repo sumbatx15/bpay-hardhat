@@ -74,8 +74,8 @@ async function main() {
 
   // subscribe with all the user to all the plans
   await Promise.all(
-    [owner, ...users].map(async (user) => {
-      for (let i = 0; i < 5; i++) {
+    [owner, ...users].slice(0, 3).map(async (user) => {
+      for (let i = 0; i < 1; i++) {
         await subscriptionService
           .connect(user)
           .subscribe(0)

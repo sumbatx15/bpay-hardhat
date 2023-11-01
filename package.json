@@ -4,7 +4,7 @@
     "test": "hardhat test",
     "build": "hardhat compile",
     "pretest": "yarn build",
-    "prestart": "npx hardhat clean && yarn build",
+    "predev": "npx hardhat clean && yarn build",
     "node": "hardhat node",
     "predeploy": "yarn build",
     "deploy": "hardhat run scripts/deploy.ts --network localhost",
