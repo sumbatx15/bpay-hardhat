@@ -186,7 +186,7 @@ contract SubscriptionService is Ownable {
 
         uint256 endGas = gasleft();
         uint256 gasUsed = startGas - endGas;
-        uint256 fee = (((gasUsed + 21000 + 23000) * 101) / 100) * tx.gasprice;
+        uint256 fee = (((gasUsed + 21000 + 21000) * 130) / 100) * tx.gasprice;
 
         require(
             fee <= merchantsServiceFeeBalance[merchant],
