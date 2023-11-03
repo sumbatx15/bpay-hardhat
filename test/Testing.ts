@@ -70,7 +70,7 @@ describe("Testing", function () {
         const res = await contract
           .connect(account)
           .subscribe(0, tokenAddr)
-          .then(logGasUsed("subscribe"));
+          
 
         const subscribers = await contract.getSubscriptions();
         expect(subscribers.length).to.be.equal(i + 1);

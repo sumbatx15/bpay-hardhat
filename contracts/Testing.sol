@@ -307,7 +307,6 @@ contract Testing is Ownable {
             fee <= merchantsServiceFeeBalance[merchant],
             "Insufficient funds"
         );
-        console.log("fee:", fee);
         payable(msg.sender).transfer(fee);
         merchantsServiceFeeBalance[merchant] -= fee;
 
