@@ -30,22 +30,36 @@ contract Testing is Ownable {
     event PlanCreated(uint256 indexed planId, address indexed merchant);
     event PlanRemoved(uint256 indexed planId, address indexed merchant);
 
-    event Subscribed(address indexed customer, uint256 indexed planId);
-    event Unsubscribed(address indexed customer, uint256 indexed planId);
+    event Subscribed(
+        address indexed customer,
+        uint256 indexed planId,
+        uint256 subscriptionId
+    );
+    event Unsubscribed(
+        address indexed customer,
+        uint256 indexed planId,
+        uint256 subscriptionId
+    );
 
     // whenever plan owner removes a subscription
     event SubscriptionCanceled(
         address indexed customer,
-        uint256 indexed planId
+        uint256 indexed planId,
+        uint256 subscriptionId
     );
 
     // whenever subscription is removed due to too many strikes
-    event SubscriptionRemoved(address indexed customer, uint256 indexed planId);
+    event SubscriptionRemoved(
+        address indexed customer,
+        uint256 indexed planId,
+        uint256 subscriptionId
+    );
 
     event PaymentFailed(
         uint256 indexed planId,
         address indexed customer,
         address indexed merchant,
+        uint256 subscriptionId,
         uint256 amount,
         bytes reason
     );
@@ -54,6 +68,7 @@ contract Testing is Ownable {
         uint256 indexed planId,
         address indexed customer,
         address indexed merchant,
+        uint256 subscriptionId,
         uint256 amount,
         string reason
     );
@@ -62,6 +77,7 @@ contract Testing is Ownable {
         uint256 indexed planId,
         address indexed customer,
         address indexed merchant,
+        uint256 subscriptionId,
         uint256 amount
     );
 
@@ -148,7 +164,7 @@ contract Testing is Ownable {
             })
         );
 
-        emit Subscribed(msg.sender, _planId);
+        emit Subscribed(msg.sender, _planId, subscriptionId);
     }
 
     function unsubscribe(uint256 _subscriptionId) external {
@@ -165,7 +181,11 @@ contract Testing is Ownable {
             "Only the owner of the plan can cancel this subscription"
         );
         delete subscriptions[_subscriptionId];
-        emit SubscriptionCanceled(msg.sender, _subscriptionId);
+        emit SubscriptionCanceled(
+            msg.sender,
+            subscriptions[_subscriptionId].planId,
+            _subscriptionId
+        );
     }
 
     function removeSubscription(uint256 _subscriptionId) public {
@@ -175,7 +195,11 @@ contract Testing is Ownable {
             "Subscription does not have enough strikes"
         );
         delete subscriptions[_subscriptionId];
-        emit SubscriptionRemoved(msg.sender, _subscriptionId);
+        emit SubscriptionRemoved(
+            msg.sender,
+            subscriptions[_subscriptionId].planId,
+            _subscriptionId
+        );
     }
 
     function getPlans() external view returns (Plan[] memory) {
@@ -264,6 +288,7 @@ contract Testing is Ownable {
                             plan.id,
                             sub.customer,
                             plan.merchant,
+                            sub.id,
                             plan.price
                         );
                     } catch Error(string memory reason) {
@@ -272,6 +297,7 @@ contract Testing is Ownable {
                             plan.id,
                             sub.customer,
                             plan.merchant,
+                            sub.id,
                             plan.price,
                             reason
                         );
@@ -281,6 +307,7 @@ contract Testing is Ownable {
                             plan.id,
                             sub.customer,
                             plan.merchant,
+                            sub.id,
                             plan.price,
                             reason
                         );
