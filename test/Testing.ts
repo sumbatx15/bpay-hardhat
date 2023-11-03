@@ -56,8 +56,13 @@ describe("Testing", function () {
 
   it("Create plan", async function () {
     const account = (await ethers.getSigners())[0];
+
     await contract
       .createPlan("Plan 1", [tokenAddr], 100, 1, 0, 2, 1)
+      .then(logGasUsed("createPlan"));
+
+    await contract
+      .createPlan("Plan 2", [tokenAddr], 100, 1, 0, 2, 1)
       .then(logGasUsed("createPlan"));
 
     const _plan = await contract.getPlanById(0);
@@ -67,10 +72,7 @@ describe("Testing", function () {
   it("Subscribe to plan", async function () {
     Promise.all(
       subscribers.map(async (account, i) => {
-        const res = await contract
-          .connect(account)
-          .subscribe(0, tokenAddr)
-          
+        const res = await contract.connect(account).subscribe(0, tokenAddr);
 
         const subscribers = await contract.getSubscriptions();
         expect(subscribers.length).to.be.equal(i + 1);
