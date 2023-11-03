@@ -1,79 +1,157 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect, util } from "chai";
-import { ContractTransactionReceipt } from "ethers";
+import { AddressLike, ContractTransactionReceipt } from "ethers";
 import { ethers } from "hardhat";
+import {
+  deployBpayMoneyContract,
+  deployTestingContract,
+  logGasUsed,
+  wait,
+  weiToUsd,
+} from "./utils";
 
 describe("Testing", function () {
-  let contract: Awaited<ReturnType<typeof deploySubscriptionService>>;
-
-  const deploySubscriptionService = async function () {
-    const [owner] = await ethers.getSigners();
-    const SubscriptionService = await ethers.getContractFactory("Testing");
-    return await SubscriptionService.deploy(owner.address);
-  };
-
-  const addPlan = async (account: HardhatEthersSigner, name: string) =>
-    await contract
-      .connect(account)
-      .createPlan(
-        name,
-        "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
-        ethers.parseEther("19.99"),
-        1,
-        {
-          gasPrice: ethers.parseUnits("15", "gwei"),
-        }
-      )
-      .then((tx) => tx.wait())
-      .then((tx) => {
-        console.log(tx?.gasUsed);
-        return tx;
-      });
+  let contract: Awaited<ReturnType<typeof deployTestingContract>>;
+  let contractAddr: AddressLike;
+  let token: Awaited<ReturnType<typeof deployBpayMoneyContract>>;
+  let tokenAddr: AddressLike;
+  let subscribers: HardhatEthersSigner[] = [];
 
   before(async function () {
-    contract = await deploySubscriptionService();
+    contract = await deployTestingContract();
+    contractAddr = contract.getAddress();
+    token = await deployBpayMoneyContract();
+    tokenAddr = token.getAddress();
+    subscribers = (await ethers.getSigners()).slice(1);
+
+    (await ethers.getSigners()).map(async (signer) => {
+      await token.connect(signer).mint(signer.address);
+      await token
+        .connect(signer)
+        .approve(contractAddr, ethers.parseEther("100000"));
+    });
   });
 
-  it("Every account should have 1000 tokens", async function () {
-    const [account, account2] = await ethers.getSigners();
-
-    await Promise.all(
-      Array(5)
-        .fill(0)
-        .map((_, i) => addPlan(account, `Plan ${i}`))
-    );
+  it("Deposit funds", async function () {
+    const account = (await ethers.getSigners())[0];
     await contract
       .connect(account)
-      .removePlan(2)
-      .then((tx) => tx.wait())
-      .then((tx) => {
-        console.log("remove", tx?.gasUsed);
-        return tx;
-      });
+      .depositServiceFee({
+        value: ethers.parseEther("1"),
+      })
+      .then(logGasUsed("depositServiceFee"));
 
-    await Promise.all(
-      Array(5)
-        .fill(0)
-        .map((_, i) => addPlan(account2, `Plan2 ${i}`))
+    expect(await contract.getServiceFeeBalance(account.address)).to.be.equal(
+      ethers.parseEther("1")
+    );
+  });
+
+  it("Accounts should have 1000+ tokens", async function () {
+    (await ethers.getSigners()).map(async (signer) => {
+      expect(await token.balanceOf(signer.address)).to.greaterThanOrEqual(
+        ethers.parseEther("1000")
+      );
+    });
+  });
+
+  it("Create plan", async function () {
+    const account = (await ethers.getSigners())[0];
+    await contract
+      .createPlan("Plan 1", [tokenAddr], 100, 1, 0, 2, 1)
+      .then(logGasUsed("createPlan"));
+
+    const _plan = await contract.getPlanById(0);
+    expect(_plan.merchant).to.be.equal(account.address);
+  });
+
+  it("Subscribe to plan", async function () {
+    Promise.all(
+      subscribers.map(async (account, i) => {
+        const res = await contract
+          .connect(account)
+          .subscribe(0, tokenAddr)
+          .then(logGasUsed("subscribe"));
+
+        const subscribers = await contract.getSubscriptions();
+        expect(subscribers.length).to.be.equal(i + 1);
+        expect(subscribers[i].customer).to.be.equal(account.address);
+        expect(res).to.emit(contract, "Subscribed");
+      })
+    );
+  });
+
+  it("Should collect payments", async function () {
+    const [account, account2, executor] = await ethers.getSigners();
+    const account2TokenBalanceBefore = await token.balanceOf(account2.address);
+    const planPrice = (await contract.getPlanById(0)).price;
+    const account2TokenBalanceAfter = account2TokenBalanceBefore - planPrice;
+    const executorETHBalanceBefore = await ethers.provider.getBalance(
+      executor.address
     );
 
-    const plan = await contract.getPlanById(1);
-    expect(plan.name).to.equal("Plan 1");
+    const res = await contract
+      .connect(executor)
+      .execute(account.address, [0], [subscribers.map((s, i) => i)])
+      .then(logGasUsed("execute"))!;
 
-    const plans = (await contract.getPlans()).reduce((acc, plan) => {
-      const merchant = plan.merchant;
-      if (!acc[merchant]) {
-        acc[merchant] = [];
-      }
-      acc[merchant].push({
-        id: plan.id,
-        name: plan.name,
-        price: plan.price.toString(),
-        period: plan.period.toString(),
-        token: plan.token,
-      });
-      return acc;
-    }, {} as Record<string, any>);
-    console.log('plans:', plans)
+    expect(await token.balanceOf(account2.address)).to.be.equal(
+      account2TokenBalanceAfter
+    );
+    expect(await contract.getServiceFeeBalance(account.address)).to.be.lessThan(
+      ethers.parseEther("1")
+    );
+
+    const executorBalanceAfter = await ethers.provider.getBalance(
+      executor.address
+    );
+    console.log(
+      "      reward:",
+      weiToUsd(executorBalanceAfter - executorETHBalanceBefore)
+    );
+    expect(executorBalanceAfter).to.be.greaterThan(executorETHBalanceBefore);
+  });
+
+  it("Should be striked", async function () {
+    const [executor, ...rest] = await ethers.getSigners();
+
+    const [sub] = await contract.getSubscriptions();
+    const firstSubscriber = rest.find((s) => s.address === sub.customer);
+    if (!firstSubscriber) throw new Error("No subscriber found");
+
+    await token
+      .connect(firstSubscriber)
+      .approve(contractAddr, ethers.parseEther("0"))
+      .then(logGasUsed("approve"))!;
+
+    // check allowance
+    const allowance = await token.allowance(
+      firstSubscriber.address,
+      contractAddr
+    );
+
+    expect(allowance).to.be.equal(0);
+
+    await wait(2000);
+
+    await contract
+      .connect(executor)
+      .execute(executor.address, [0], [[sub.id]])
+      .then(logGasUsed("execute"))!;
+
+    expect(await contract.strikes(0)).to.be.equal(1);
+
+    await contract
+      .connect(executor)
+      .execute(executor.address, [0], [[sub.id]])
+      .then(logGasUsed("execute"))!;
+
+    expect(await contract.strikes(0)).to.be.equal(2);
+
+    const res = await contract
+      .connect(executor)
+      .execute(executor.address, [0], [[sub.id]])
+      .then(logGasUsed("execute"))!;
+
+    expect(res).to.emit(contract, "SubscriptionRemoved");
   });
 });

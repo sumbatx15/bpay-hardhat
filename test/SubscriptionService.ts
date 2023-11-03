@@ -36,6 +36,7 @@
 //       if (accounts.indexOf(account) != 0) {
 //         await token.mint(account.address);
 //       }
+
 //       token.approve(subContract.getAddress(), ethers.parseEther("100000"));
 //     }
 
