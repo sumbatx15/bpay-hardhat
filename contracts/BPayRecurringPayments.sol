@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "hardhat/console.sol";
 
-contract Testing is Ownable {
+contract BPayRecurringPayments is Ownable {
     constructor(address _initialOwner) Ownable(_initialOwner) {}
 
     struct Plan {

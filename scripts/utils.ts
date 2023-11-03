@@ -1,5 +1,11 @@
-const fs = require("fs");
-const path = require("path");
+import {
+  HardhatEthersSigner,
+  HardhatEthersSigner,
+} from "@nomicfoundation/hardhat-ethers/signers";
+import fs from "fs";
+import { ethers } from "hardhat";
+import path from "path";
+import { BPayMoney, BPayMoney } from "../typechain-types";
 
 export const getAbi = (contractName: string) => {
   try {
@@ -13,3 +19,49 @@ export const getAbi = (contractName: string) => {
     return "";
   }
 };
+export function writeJSONAbi(
+  frontAbiFolderPath: string,
+  contractName: string,
+  subscriptionServiceAbi: any
+) {
+  fs.writeFileSync(
+    path.join(frontAbiFolderPath, `${contractName}.json`),
+    JSON.stringify(subscriptionServiceAbi)
+  );
+}
+export function writeTSAbi(
+  frontAbiFolderPath: string,
+  contractName: string,
+  subscriptionServiceAbi: any
+) {
+  fs.writeFileSync(
+    path.join(frontAbiFolderPath, `${contractName}.ts`),
+    `export const ${contractName}Abi = ${JSON.stringify(
+      subscriptionServiceAbi
+    )} as const`
+  );
+}
+
+export const generateAddressesContent = (contract: string, address: string) => {
+  return `
+export const SUBSCRIPTION_CONTRACT_ADDRESS = "${contract}";
+export const BPAY_MONEY_CONTRACT_ADDRESS = "${address}";
+`;
+};
+
+export function approve(
+  token: BPayMoney,
+  account: HardhatEthersSigner,
+  spenderAddr: string
+) {
+  return token
+    .connect(account)
+    .approve(spenderAddr, ethers.parseEther("1000000"))
+    .then((tx) => tx.wait());
+}
+export function mint(token: BPayMoney, user: HardhatEthersSigner) {
+  return token
+    .connect(user)
+    .mint(user.address)
+    .then((tx) => tx.wait());
+}
