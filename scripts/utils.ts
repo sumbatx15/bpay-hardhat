@@ -1,11 +1,8 @@
-import {
-  HardhatEthersSigner,
-  HardhatEthersSigner,
-} from "@nomicfoundation/hardhat-ethers/signers";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import fs from "fs";
 import { ethers } from "hardhat";
 import path from "path";
-import { BPayMoney, BPayMoney } from "../typechain-types";
+import { BPayMoney } from "../typechain-types";
 
 export const getAbi = (contractName: string) => {
   try {
@@ -44,7 +41,7 @@ export function writeTSAbi(
 
 export const generateAddressesContent = (contract: string, address: string) => {
   return `
-export const SUBSCRIPTION_CONTRACT_ADDRESS = "${contract}";
+export const BPAY_CONTRACT = "${contract}";
 export const BPAY_MONEY_CONTRACT_ADDRESS = "${address}";
 `;
 };
