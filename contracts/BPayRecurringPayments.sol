@@ -236,6 +236,28 @@ contract BPayRecurringPayments is Ownable {
         return subs;
     }
 
+    function getMerchantPlans(
+        address merchant
+    ) external view returns (Plan[] memory) {
+        uint256 total = 0;
+        for (uint256 i = 0; i < plans.length; i++) {
+            if (plans[i].merchant == merchant) {
+                total++;
+            }
+        }
+
+        Plan[] memory _plans = new Plan[](total);
+        uint256 index = 0;
+        for (uint256 i = 0; i < plans.length; i++) {
+            if (plans[i].merchant == merchant) {
+                _plans[index] = plans[i];
+                index++;
+            }
+        }
+
+        return _plans;
+    }
+
     function getSubscriptionsByMerchant(
         address merchant
     ) external view returns (Subscription[] memory) {

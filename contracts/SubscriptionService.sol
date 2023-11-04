@@ -195,7 +195,7 @@ contract SubscriptionService is Ownable {
 
         payable(msg.sender).transfer(fee);
         merchantsServiceFeeBalance[merchant] -= fee;
-        console.log('fee sc:', fee);
+        console.log("fee sc:", fee);
 
         emit ServiceFeeTransferred(merchant, msg.sender, fee);
     }

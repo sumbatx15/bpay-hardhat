@@ -61,7 +61,17 @@ async function main() {
   fs.writeFileSync(path.join(frontSrcPath, "/contract.ts"), fileContent);
   fs.writeFileSync(path.join(executorFolder, "/index.ts"), fileContent);
 
-  exec("yarn generate", { cwd: frontRootPath });
+  exec(
+    "yarn generate",
+    { cwd: frontRootPath } as any,
+    (err, stdout, stderr) => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+      console.log(stdout);
+    }
+  );
 }
 
 main().catch((error) => {
