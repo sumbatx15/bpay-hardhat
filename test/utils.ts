@@ -28,11 +28,13 @@ export const logGasUsed =
     return res;
   };
 
-export const deployTestingContract = async function () {
+export const deployBPayRecurringPaymentsContract = async function () {
   const [owner] = await ethers.getSigners();
-  return await ethers.getContractFactory("Testing").then(async (factory) => {
-    return await factory.deploy(owner.address);
-  });
+  return await ethers
+    .getContractFactory("BPayRecurringPayments")
+    .then(async (factory) => {
+      return await factory.deploy(owner.address);
+    });
 };
 
 export const deployBpayMoneyContract = async function () {

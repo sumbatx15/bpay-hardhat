@@ -33,11 +33,13 @@ contract BPayRecurringPayments is Ownable {
     event Subscribed(
         address indexed customer,
         uint256 indexed planId,
+        address indexed merchant,
         uint256 subscriptionId
     );
     event Unsubscribed(
         address indexed customer,
         uint256 indexed planId,
+        address indexed merchant,
         uint256 subscriptionId
     );
 
@@ -45,6 +47,7 @@ contract BPayRecurringPayments is Ownable {
     event SubscriptionCanceled(
         address indexed customer,
         uint256 indexed planId,
+        address indexed merchant,
         uint256 subscriptionId
     );
 
@@ -52,6 +55,7 @@ contract BPayRecurringPayments is Ownable {
     event SubscriptionRemoved(
         address indexed customer,
         uint256 indexed planId,
+        address indexed merchant,
         uint256 subscriptionId
     );
 
@@ -80,8 +84,6 @@ contract BPayRecurringPayments is Ownable {
         uint256 subscriptionId,
         uint256 amount
     );
-
-    event Executed(address indexed merchant, uint256 serviceFee);
 
     event ServiceFeeTransferred(
         address indexed merchant,
@@ -164,7 +166,12 @@ contract BPayRecurringPayments is Ownable {
             })
         );
 
-        emit Subscribed(msg.sender, _planId, subscriptionId);
+        emit Subscribed(
+            msg.sender,
+            _planId,
+            plans[_planId].merchant,
+            subscriptionId
+        );
     }
 
     function unsubscribe(uint256 _subscriptionId) external {
@@ -184,6 +191,7 @@ contract BPayRecurringPayments is Ownable {
         emit SubscriptionCanceled(
             msg.sender,
             subscriptions[_subscriptionId].planId,
+            plans[subscriptions[_subscriptionId].planId].merchant,
             _subscriptionId
         );
     }
@@ -198,6 +206,7 @@ contract BPayRecurringPayments is Ownable {
         emit SubscriptionRemoved(
             msg.sender,
             subscriptions[_subscriptionId].planId,
+            plans[subscriptions[_subscriptionId].planId].merchant,
             _subscriptionId
         );
     }
@@ -310,13 +319,20 @@ contract BPayRecurringPayments is Ownable {
         uint256 startGas = gasleft();
 
         for (uint256 i = 0; i < _planIds.length; i++) {
-            Plan memory plan = plans[i];
-            if (plan.merchant != merchant) continue;
+            require(
+                plans[_planIds[i]].merchant == merchant,
+                "All plans must have the same merchant"
+            );
+        }
+
+        for (uint256 i = 0; i < _planIds.length; i++) {
+            Plan memory plan = plans[_planIds[i]];
+
             uint256[] memory subIds = _subscriptionIds[i];
 
             for (uint256 j = 0; j < subIds.length; j++) {
-                bool errored = false; // flag to track if an error happened
-                Subscription storage sub = subscriptions[j];
+                bool errored = false;
+                Subscription storage sub = subscriptions[subIds[j]];
                 IERC20 token = IERC20(sub.token);
                 uint64 diff = uint64(block.timestamp - sub.updatedAt);
                 if (diff >= plan.period) {
@@ -328,6 +344,7 @@ contract BPayRecurringPayments is Ownable {
                         )
                     {
                         sub.updatedAt = uint64(block.timestamp);
+                        console.log("sub.updatedAt:", sub.updatedAt);
                         emit PaymentTransferred(
                             plan.id,
                             sub.customer,
@@ -358,10 +375,12 @@ contract BPayRecurringPayments is Ownable {
                     }
                 }
                 if (errored) {
+                    console.log("errored:", errored);
                     if (strikes[sub.id] < plan.maxStrikes) {
                         strikes[sub.id]++;
-                        sub.updatedAt += plan.extendPeriodOnStrike;
+                        sub.updatedAt += plan.extendPeriodOnStrike + 1;
                     } else {
+                        console.log("removing subscription:", sub.id);
                         removeSubscription(sub.id);
                     }
                 } else {

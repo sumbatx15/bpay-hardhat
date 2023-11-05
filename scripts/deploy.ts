@@ -31,16 +31,22 @@ async function main() {
       "CSGO Premium",
       [tokenAddr],
       ethers.parseEther("19.99"),
-      1,
+      30,
       0,
-      1,
-      60
+      0,
+      0
     );
 
   await Promise.all(
     [owner, ...users].map(async (user) => {
       await mint(token, user);
       await approve(token, user, contractAddr);
+    })
+  );
+
+  await Promise.all(
+    [owner, ...users].map(async (user) => {
+      await contract.connect(user).subscribe(0, tokenAddr);
     })
   );
 

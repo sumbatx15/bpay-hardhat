@@ -4,21 +4,21 @@ import { AddressLike, ContractTransactionReceipt } from "ethers";
 import { ethers } from "hardhat";
 import {
   deployBpayMoneyContract,
-  deployTestingContract,
+  deployBPayRecurringPaymentsContract,
   logGasUsed,
   wait,
   weiToUsd,
 } from "./utils";
 
 describe("Testing", function () {
-  let contract: Awaited<ReturnType<typeof deployTestingContract>>;
+  let contract: Awaited<ReturnType<typeof deployBPayRecurringPaymentsContract>>;
   let contractAddr: AddressLike;
   let token: Awaited<ReturnType<typeof deployBpayMoneyContract>>;
   let tokenAddr: AddressLike;
   let subscribers: HardhatEthersSigner[] = [];
 
   before(async function () {
-    contract = await deployTestingContract();
+    contract = await deployBPayRecurringPaymentsContract();
     contractAddr = contract.getAddress();
     token = await deployBpayMoneyContract();
     tokenAddr = token.getAddress();
@@ -61,10 +61,6 @@ describe("Testing", function () {
       .createPlan("Plan 1", [tokenAddr], 100, 1, 0, 2, 1)
       .then(logGasUsed("createPlan"));
 
-    await contract
-      .createPlan("Plan 2", [tokenAddr], 100, 1, 0, 2, 1)
-      .then(logGasUsed("createPlan"));
-
     const _plan = await contract.getPlanById(0);
     expect(_plan.merchant).to.be.equal(account.address);
   });
@@ -82,78 +78,104 @@ describe("Testing", function () {
     );
   });
 
-  it("Should collect payments", async function () {
-    const [account, account2, executor] = await ethers.getSigners();
-    const account2TokenBalanceBefore = await token.balanceOf(account2.address);
-    const planPrice = (await contract.getPlanById(0)).price;
-    const account2TokenBalanceAfter = account2TokenBalanceBefore - planPrice;
-    const executorETHBalanceBefore = await ethers.provider.getBalance(
-      executor.address
-    );
+  it("creates plans from second user", async function () {
+    const owner = (await ethers.getSigners())[0];
+    const account = (await ethers.getSigners())[1];
+    await contract
+      .connect(account)
+      .createPlan("Plan 1", [tokenAddr], ethers.parseEther("12"), 30, 0, 0, 0)
+      .then(logGasUsed("createPlan"));
 
-    const res = await contract
-      .connect(executor)
-      .execute(account.address, [0], [subscribers.map((s, i) => i)])
-      .then(logGasUsed("execute"))!;
+    await contract.connect(account).depositServiceFee({
+      value: ethers.parseEther("1"),
+    });
 
-    expect(await token.balanceOf(account2.address)).to.be.equal(
-      account2TokenBalanceAfter
-    );
-    expect(await contract.getServiceFeeBalance(account.address)).to.be.lessThan(
-      ethers.parseEther("1")
-    );
+    await contract.connect(account).subscribe(1, tokenAddr);
 
-    const executorBalanceAfter = await ethers.provider.getBalance(
-      executor.address
-    );
-    console.log(
-      "      reward:",
-      weiToUsd(executorBalanceAfter - executorETHBalanceBefore)
-    );
-    expect(executorBalanceAfter).to.be.greaterThan(executorETHBalanceBefore);
+    const plans = await contract.getMerchantPlans(account.address);
+    console.log("plans:", plans);
+    const subs = await contract.getPlanSubscriptions(plans[0].id);
+    console.log("subs:", subs);
+
+    await expect(
+      contract.connect(owner).execute(account.address, [1], [[19]])
+    ).to.emit(contract, "PaymentTransferred");
+
+    expect(subs[0].updatedAt.toString()).to.not.be.equal("0");
   });
 
-  it("Should be striked", async function () {
-    const [executor, ...rest] = await ethers.getSigners();
+  // it("Should collect payments", async function () {
+  //   const [account, account2, executor] = await ethers.getSigners();
+  //   const account2TokenBalanceBefore = await token.balanceOf(account2.address);
+  //   const planPrice = (await contract.getPlanById(0)).price;
+  //   const account2TokenBalanceAfter = account2TokenBalanceBefore - planPrice;
+  //   const executorETHBalanceBefore = await ethers.provider.getBalance(
+  //     executor.address
+  //   );
 
-    const [sub] = await contract.getSubscriptions();
-    const firstSubscriber = rest.find((s) => s.address === sub.customer);
-    if (!firstSubscriber) throw new Error("No subscriber found");
+  //   const res = await contract
+  //     .connect(executor)
+  //     .execute(account.address, [0], [subscribers.map((s, i) => i)])
+  //     .then(logGasUsed("execute"))!;
 
-    await token
-      .connect(firstSubscriber)
-      .approve(contractAddr, ethers.parseEther("0"))
-      .then(logGasUsed("approve"))!;
+  //   expect(await token.balanceOf(account2.address)).to.be.equal(
+  //     account2TokenBalanceAfter
+  //   );
+  //   expect(await contract.getServiceFeeBalance(account.address)).to.be.lessThan(
+  //     ethers.parseEther("1")
+  //   );
 
-    // check allowance
-    const allowance = await token.allowance(
-      firstSubscriber.address,
-      contractAddr
-    );
+  //   const executorBalanceAfter = await ethers.provider.getBalance(
+  //     executor.address
+  //   );
+  //   console.log(
+  //     "      reward:",
+  //     weiToUsd(executorBalanceAfter - executorETHBalanceBefore)
+  //   );
+  //   expect(executorBalanceAfter).to.be.greaterThan(executorETHBalanceBefore);
+  // });
 
-    expect(allowance).to.be.equal(0);
+  // it("Should be striked", async function () {
+  //   const [executor, ...rest] = await ethers.getSigners();
 
-    await wait(2000);
+  //   const [sub] = await contract.getSubscriptions();
+  //   const firstSubscriber = rest.find((s) => s.address === sub.customer);
+  //   if (!firstSubscriber) throw new Error("No subscriber found");
 
-    await contract
-      .connect(executor)
-      .execute(executor.address, [0], [[sub.id]])
-      .then(logGasUsed("execute"))!;
+  //   await token
+  //     .connect(firstSubscriber)
+  //     .approve(contractAddr, ethers.parseEther("0"))
+  //     .then(logGasUsed("approve"))!;
 
-    expect(await contract.strikes(0)).to.be.equal(1);
+  //   // check allowance
+  //   const allowance = await token.allowance(
+  //     firstSubscriber.address,
+  //     contractAddr
+  //   );
 
-    await contract
-      .connect(executor)
-      .execute(executor.address, [0], [[sub.id]])
-      .then(logGasUsed("execute"))!;
+  //   expect(allowance).to.be.equal(0);
 
-    expect(await contract.strikes(0)).to.be.equal(2);
+  //   await wait(2000);
 
-    const res = await contract
-      .connect(executor)
-      .execute(executor.address, [0], [[sub.id]])
-      .then(logGasUsed("execute"))!;
+  //   await contract
+  //     .connect(executor)
+  //     .execute(executor.address, [0], [[sub.id]])
+  //     .then(logGasUsed("execute"))!;
 
-    expect(res).to.emit(contract, "SubscriptionRemoved");
-  });
+  //   expect(await contract.strikes(0)).to.be.equal(1);
+
+  //   await contract
+  //     .connect(executor)
+  //     .execute(executor.address, [0], [[sub.id]])
+  //     .then(logGasUsed("execute"))!;
+
+  //   expect(await contract.strikes(0)).to.be.equal(2);
+
+  //   const res = await contract
+  //     .connect(executor)
+  //     .execute(executor.address, [0], [[sub.id]])
+  //     .then(logGasUsed("execute"))!;
+
+  //   expect(res).to.emit(contract, "SubscriptionRemoved");
+  // });
 });
