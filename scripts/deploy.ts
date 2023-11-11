@@ -36,17 +36,31 @@ async function main() {
       0,
       0
     );
+  await contract
+    .connect(owner)
+    .createPlan(
+      "CSGO Premium",
+      [tokenAddr],
+      ethers.parseEther("19.99"),
+      30,
+      0,
+      0,
+      0
+    );
 
   await Promise.all(
     [owner, ...users].map(async (user) => {
       await mint(token, user);
-      await approve(token, user, contractAddr);
+      if (user === owner) {
+        await approve(token, user, contractAddr);
+      }
     })
   );
 
   await Promise.all(
     [owner, ...users].map(async (user) => {
       await contract.connect(user).subscribe(0, tokenAddr);
+      await contract.connect(user).subscribe(1, tokenAddr);
     })
   );
 

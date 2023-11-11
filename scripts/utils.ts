@@ -39,10 +39,10 @@ export function writeTSAbi(
   );
 }
 
-export const generateAddressesContent = (contract: string, address: string) => {
+export const generateAddressesContent = (contract: string, token: string) => {
   return `
 export const BPAY_CONTRACT = "${contract}";
-export const BPAY_MONEY_CONTRACT_ADDRESS = "${address}";
+export const BPAY_MONEY_CONTRACT_ADDRESS = "${token}";
 `;
 };
 

@@ -78,30 +78,67 @@ describe("Testing", function () {
     );
   });
 
-  it("creates plans from second user", async function () {
-    const owner = (await ethers.getSigners())[0];
-    const account = (await ethers.getSigners())[1];
-    await contract
-      .connect(account)
-      .createPlan("Plan 1", [tokenAddr], ethers.parseEther("12"), 30, 0, 0, 0)
-      .then(logGasUsed("createPlan"));
+  it("Testing execute2", async function () {
+    const [, account1, account2, executor] = await ethers.getSigners();
+    await contract.connect(account1).test().then(logGasUsed("test"));
+    // await contract
+    //   .connect(account1)
+    //   .createPlan("p", [tokenAddr], 100, 0, 0, 0, 0);
+    // await contract
+    //   .connect(account2)
+    //   .createPlan("p", [tokenAddr], 100, 0, 0, 0, 0);
 
-    await contract.connect(account).depositServiceFee({
-      value: ethers.parseEther("1"),
-    });
+    // const [p1, p2] = await Promise.all([
+    //   contract.getMerchantPlans(account1.address).then((res) => res[0]),
+    //   contract.getMerchantPlans(account2.address).then((res) => res[0]),
+    // ]);
 
-    await contract.connect(account).subscribe(1, tokenAddr);
+    // await Promise.all([
+    //   contract.connect(account1).depositServiceFee({
+    //     value: ethers.parseEther("1"),
+    //   }),
+    //   contract.connect(account2).depositServiceFee({
+    //     value: ethers.parseEther("1"),
+    //   }),
+    //   contract.connect(account1).subscribe(p1.id, tokenAddr),
+    //   contract.connect(account2).subscribe(p2.id, tokenAddr),
+    // ]);
 
-    const plans = await contract.getMerchantPlans(account.address);
-    console.log("plans:", plans);
-    const subs = await contract.getPlanSubscriptions(plans[0].id);
-    console.log("subs:", subs);
+    // const [s1, s2] = await Promise.all([
+    //   contract.getPlanSubscriptions(p1.id).then((res) => res[0]),
+    //   contract.getPlanSubscriptions(p2.id).then((res) => res[0]),
+    // ]);
 
-    await expect(
-      contract.connect(owner).execute(account.address, [1], [[19]])
-    ).to.emit(contract, "PaymentTransferred");
-
-    expect(subs[0].updatedAt.toString()).to.not.be.equal("0");
+    // for (let i = 0; i < 3; i++) {
+    //   await contract
+    //     .connect(executor)
+    //     .execute(account1.address, [p1.id], [[s1.id]])
+    //     .then(logGasUsed("execute 1"));
+    //   await contract
+    //     .connect(executor)
+    //     .execute(account2.address, [p2.id], [[s2.id]])
+    //     .then(logGasUsed("execute 2"));
+    // }
+    //   for (let i = 0; i < 3; i++) {
+    //     await contract
+    //       .connect(executor)
+    //       .execute2(account1.address, p1.id, [s1.id])
+    //       .then(logGasUsed("execute2 1"));
+    //     await contract
+    //       .connect(executor)
+    //       .execute2(account2.address, p2.id, [s2.id])
+    //       .then(logGasUsed("execute2 2"));
+    //   }
+    //   for (let i = 0; i < 3; i++) {
+    //     await contract
+    //       .connect(executor)
+    //       .execute3(account1.address, p1.id, s1.id)
+    //       .then(logGasUsed("execute3 1"));
+    //     await contract
+    //       .connect(executor)
+    //       .execute3(account2.address, p2.id, s2.id)
+    //       .then(logGasUsed("execute3 2"));
+    //   }
   });
 
   // it("Should collect payments", async function () {

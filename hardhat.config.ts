@@ -6,11 +6,11 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       mining: {
-        auto: true,
-        interval: 5000,
+        auto: false,
+        interval: 3000,
       },
       chainId: 1337,
-      gasPrice: 11000000000,
+      gasPrice: 6000000000,
     },
   },
 };
