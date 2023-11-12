@@ -5,10 +5,10 @@
     "build": "hardhat compile",
     "pretest": "yarn build",
     "predev": "npx hardhat clean && yarn build",
-    "node": "hardhat node",
     "predeploy": "yarn build",
     "deploy": "hardhat run scripts/deploy.ts --network localhost",
-    "dev": "concurrently \"hardhat node\" \"sleep 5 & yarn deploy\""
+    "dev": "concurrently \"hardhat node --hostname 0.0.0.0\" \"sleep 5 & yarn deploy\"",
+    "vercel-build": "echo hello"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
